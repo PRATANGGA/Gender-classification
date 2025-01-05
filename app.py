@@ -4,37 +4,43 @@ import numpy as np
 import pandas as pd
 
 # Muat model dan scaler
-with open('models/knn_model.pkl', 'rb') as file:
-    knn_model = pickle.load(file)
-with open('models/scaler.pkl', 'rb') as file:
-    scaler = pickle.load(file)
+try:
+    with open('models/knn_model.pkl', 'rb') as model_file:
+        knn_model = pickle.load(model_file)
+    with open('models/scaler.pkl', 'rb') as scaler_file:
+        scaler = pickle.load(scaler_file)
+except FileNotFoundError:
+    st.error("File model atau scaler tidak ditemukan. Pastikan 'knn_model.pkl' dan 'scaler.pkl' berada di direktori yang benar.")
+    st.stop()
 
 # Judul aplikasi
 st.title("Aplikasi Prediksi Gender")
 st.write("Masukkan data berikut untuk memprediksi gender:")
 
-# Input dari pengguna untuk semua fitur
+# Input numerik
 forehead_width = st.number_input("Lebar dahi (cm):", min_value=0.0, step=0.1, format="%.2f")
 forehead_height = st.number_input("Tinggi dahi (cm):", min_value=0.0, step=0.1, format="%.2f")
-distance_nose_to_lip_long = st.number_input("Jarak hidung ke bibir panjang (cm):", min_value=0.0, step=0.1, format="%.2f")
-lips_thin = st.number_input("Ketebalan bibir (cm):", min_value=0.0, step=0.1, format="%.2f")
-long_hair = st.number_input("Panjang rambut (cm):", min_value=0.0, step=0.1, format="%.2f")
-nose_long = st.number_input("Panjang hidung (cm):", min_value=0.0, step=0.1, format="%.2f")
-nose_wide = st.number_input("Lebar hidung (cm):", min_value=0.0, step=0.1, format="%.2f")
+
+# Input kategori
+distance_nose_to_lip_long = st.selectbox("Jarak hidung ke bibir panjang:", ["Pendek", "Panjang"])
+lips_thin = st.selectbox("Bibir tipis:", ["Ya", "Tidak"])
+long_hair = st.selectbox("Rambut panjang:", ["Ya", "Tidak"])
+nose_long = st.selectbox("Hidung panjang:", ["Ya", "Tidak"])
+nose_wide = st.selectbox("Hidung lebar:", ["Ya", "Tidak"])
+
+# Konversi input kategori ke numerik
+distance_nose_to_lip_long = 1 if distance_nose_to_lip_long == "Panjang" else 0
+lips_thin = 1 if lips_thin == "Ya" else 0
+long_hair = 1 if long_hair == "Ya" else 0
+nose_long = 1 if nose_long == "Ya" else 0
+nose_wide = 1 if nose_wide == "Ya" else 0
 
 # Prediksi
 if st.button("Prediksi"):
     try:
-        # Buat input data baru dalam format DataFrame
-        input_data = pd.DataFrame([[
-            forehead_width, forehead_height, distance_nose_to_lip_long, 
-            lips_thin, long_hair, nose_long, nose_wide
-        ]], columns=[
-            'forehead_width_cm', 'forehead_height_cm', 'distance_nose_to_lip_long',
-            'lips_thin', 'long_hair', 'nose_long', 'nose_wide'
-        ])
-
         # Preprocessing input
+        input_data = np.array([[forehead_width, forehead_height, distance_nose_to_lip_long,
+                                lips_thin, long_hair, nose_long, nose_wide]])
         processed_data = scaler.transform(input_data)
 
         # Prediksi dengan model
@@ -44,4 +50,4 @@ if st.button("Prediksi"):
         gender = "Laki-laki" if prediction[0] == 1 else "Perempuan"
         st.success(f"Hasil prediksi: {gender}")
     except Exception as e:
-        st.error(f"Terjadi kesalahan: {e}")
+        st.error(f"Terjadi kesalahan saat memproses data: {e}")
